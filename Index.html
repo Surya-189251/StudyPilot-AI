@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudyPilot AI</title>
+  <link rel="stylesheet" href="/Style.css">
+</head>
+<body>
+<div id="app-shell">
+
+  <!-- ═══ SIDEBAR ═══ -->
+  <nav id="sidebar" role="navigation" aria-label="Main navigation">
+    <div class="logo">
+      <h1>Study<span>Pilot</span> AI</h1>
+      <small>Smart Study Generator Agent</small>
+    </div>
+    <div id="nav-links">
+      <a href="#" onclick="navigate('dashboard')" id="nav-dashboard" class="active" tabindex="0">
+        <span class="nav-icon">🏠</span> Dashboard
+      </a>
+      <a href="#" onclick="navigate('subjects')" id="nav-subjects" tabindex="0">
+        <span class="nav-icon">📚</span> Subjects &amp; Materials
+      </a>
+      <a href="#" onclick="navigate('chat')" id="nav-chat" tabindex="0">
+        <span class="nav-icon">💬</span> Study Assistant
+      </a>
+      <a href="#" onclick="navigate('summaries')" id="nav-summaries" tabindex="0">
+        <span class="nav-icon">📝</span> Summaries
+      </a>
+      <a href="#" onclick="navigate('flashcards')" id="nav-flashcards" tabindex="0">
+        <span class="nav-icon">🃏</span> Flashcards
+      </a>
+      <a href="#" onclick="navigate('quizzes')" id="nav-quizzes" tabindex="0">
+        <span class="nav-icon">✅</span> Practice Quizzes
+      </a>
+      <a href="#" onclick="navigate('planner')" id="nav-planner" tabindex="0">
+        <span class="nav-icon">📅</span> Study Planner
+      </a>
+      <a href="#" onclick="navigate('analytics')" id="nav-analytics" tabindex="0">
+        <span class="nav-icon">📊</span> Analytics
+      </a>
+    </div>
+    <div id="sidebar-footer">
+      <div>In-memory store &mdash; data resets on restart</div>
+      <div style="margin-top:3px">For persistence: configure IBM Cloud</div>
+    </div>
+  </nav>
+
+  <!-- ═══ MAIN ═══ -->
+  <div id="main-content">
+    <header id="top-header">
+      <button id="hamburger" aria-label="Toggle menu" onclick="toggleSidebar()">&#9776;</button>
+      <span id="page-title">Dashboard</span>
+      <div id="header-spacer"></div>
+      <span id="ai-status" class="unk">Checking AI…</span>
+    </header>
+
+    <!-- ── DASHBOARD ─────────────────────────────────────────── -->
+    <section id="page-dashboard" class="page-section active">
+      <div class="stats-grid" id="dash-stats"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:20px" id="dash-grid-top">
+        <div class="card">
+          <div class="card-title">📅 Upcoming Exams</div>
+          <div id="dash-exams"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">📋 Today&rsquo;s Study Tasks</div>
+          <div id="dash-tasks"></div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px" id="dash-grid-bot">
+        <div class="card">
+          <div class="card-title">🏆 Recent Quiz Results</div>
+          <div id="dash-quizzes"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">🕒 Recent Activity</div>
+          <div id="dash-activity"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SUBJECTS & MATERIALS ──────────────────────────────── -->
+    <section id="page-subjects" class="page-section">
+      <div class="section-header">
+        <h2>Subjects &amp; Materials</h2>
+        <button class="btn btn-primary" onclick="openSubjectModal()">+ New Subject</button>
+      </div>
+      <div id="subject-list" class="subject-grid"></div>
+
+      <div id="doc-panel" style="margin-top:28px;display:none">
+        <div class="section-header">
+          <h2 id="doc-panel-title">Documents</h2>
+          <button class="btn btn-teal btn-sm" onclick="openUploadModal()">⬆ Upload Document</button>
+        </div>
+        <div id="doc-list" class="doc-list"></div>
+      </div>
+    </section>
+
+    <!-- ── STUDY ASSISTANT ───────────────────────────────────── -->
+    <section id="page-chat" class="page-section" style="padding:0">
+      <div id="chat-container">
+        <div id="chat-subject-bar">
+          <select id="chat-subject-sel" onchange="chatSubjectChanged()" style="flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:7px;font-size:.84rem;font-family:inherit;background:#fff">
+            <option value="">— Select a subject —</option>
+          </select>
+          <button class="btn btn-secondary btn-sm" onclick="clearChat()">Clear chat</button>
+        </div>
+        <div id="chat-messages">
+          <div class="msg assistant">
+            <div class="msg-bubble">
+              <strong>Welcome to Study Assistant!</strong><br>
+              Select a subject above, then ask any question about your uploaded materials.
+              I will cite sources from your documents.
+            </div>
+          </div>
+        </div>
+        <div id="chat-input-area">
+          <textarea id="chat-input" placeholder="Ask a question about your materials…" rows="1"
+            onkeydown="chatKeydown(event)"></textarea>
+          <button class="btn btn-primary" onclick="sendChat()" id="chat-send-btn">Send</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SUMMARIES ─────────────────────────────────────────── -->
+    <section id="page-summaries" class="page-section">
+      <div class="section-header">
+        <h2>Summaries &amp; Revision Notes</h2>
+      </div>
+      <div class="card" style="margin-bottom:18px">
+        <div class="form-row" style="margin-bottom:10px">
+          <div class="form-group" style="margin:0">
+            <label>Subject</label>
+            <select id="sum-subject"></select>
+          </div>
+          <div class="form-group" style="margin:0">
+            <label>Style</label>
+            <select id="sum-style">
+              <option value="short">Short Summary</option>
+              <option value="detailed">Detailed Revision Notes</option>
+              <option value="keyterms">Key Terms &amp; Definitions</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:10px">
+          <label>Topic (or leave blank for all content)</label>
+          <input id="sum-topic" type="text" placeholder="e.g. Photosynthesis, Chapter 3…">
+        </div>
+        <button class="btn btn-primary" onclick="generateSummary()" id="sum-btn">Generate</button>
+      </div>
+      <div id="sum-result" style="display:none">
+        <div class="section-header">
+          <h2 id="sum-result-title">Generated Summary</h2>
+          <button class="btn btn-secondary btn-sm" onclick="exportSummary()">⬇ Export .md</button>
+        </div>
+        <div class="card">
+          <div id="sum-sources" style="margin-bottom:10px"></div>
+          <div id="sum-content" class="preview-box"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── FLASHCARDS ────────────────────────────────────────── -->
+    <section id="page-flashcards" class="page-section">
+      <div class="section-header">
+        <h2>Flashcards</h2>
+      </div>
+      <div class="card" style="margin-bottom:18px">
+        <div class="form-row" style="margin-bottom:10px">
+          <div class="form-group" style="margin:0">
+            <label>Subject</label>
+            <select id="fc-subject"></select>
+          </div>
+          <div class="form-group" style="margin:0">
+            <label>Number of cards</label>
+            <select id="fc-count">
+              <option value="5">5</option>
+              <option value="10" selected>10</option>
+              <option value="15">15</option>
+              <option value="20">20</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:10px">
+          <label>Topic</label>
+          <input id="fc-topic" type="text" placeholder="e.g. Key terms, Chapter 2…">
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="generateFlashcards()" id="fc-gen-btn">Generate Flashcards</button>
+          <button class="btn btn-secondary" onclick="loadSavedSets()" id="fc-load-btn">Load Saved Sets</button>
+        </div>
+      </div>
+      <div id="fc-deck-area">
+        <div id="fc-set-selector" style="display:none;margin-bottom:14px">
+          <label style="font-size:.82rem;font-weight:500;margin-bottom:5px;display:block">Saved Sets</label>
+          <select id="fc-set-sel" onchange="loadFlashcardSet(this.value)" style="padding:6px 10px;border:1px solid var(--border);border-radius:7px;font-size:.84rem;font-family:inherit"></select>
+        </div>
+        <div class="section-header" id="fc-deck-header" style="display:none">
+          <h2 id="fc-deck-title"></h2>
+          <button class="btn btn-secondary btn-sm" onclick="exportFlashcards()">⬇ Export .md</button>
+        </div>
+        <div id="fc-deck" class="flashcard-deck"></div>
+        <div id="fc-instructions" style="text-align:center;color:var(--muted);font-size:.8rem;margin-top:12px;display:none">Click a card to flip it</div>
+      </div>
+    </section>
+
+    <!-- ── QUIZZES ────────────────────────────────────────────── -->
+    <section id="page-quizzes" class="page-section">
+      <div class="section-header">
+        <h2>Practice Quizzes</h2>
+        <span class="badge badge-amber" style="font-size:.7rem">AI-generated — not verified exam questions</span>
+      </div>
+      <div id="quiz-setup" class="card" style="margin-bottom:18px">
+        <div class="form-row" style="margin-bottom:10px">
+          <div class="form-group" style="margin:0">
+            <label>Subject</label>
+            <select id="quiz-subject"></select>
+          </div>
+          <div class="form-group" style="margin:0">
+            <label>Number of questions</label>
+            <select id="quiz-num">
+              <option value="5" selected>5</option>
+              <option value="10">10</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row" style="margin-bottom:10px">
+          <div class="form-group" style="margin:0">
+            <label>Topic</label>
+            <input id="quiz-topic" type="text" placeholder="e.g. Chapter 1, all topics…">
+          </div>
+          <div class="form-group" style="margin:0">
+            <label>Difficulty</label>
+            <select id="quiz-diff">
+              <option value="easy">Easy</option>
+              <option value="medium" selected>Medium</option>
+              <option value="hard">Hard</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="generateQuiz()" id="quiz-gen-btn">Generate Quiz</button>
+      </div>
+      <div id="quiz-area" style="display:none">
+        <div id="quiz-questions"></div>
+        <div id="quiz-submit-row" style="margin-top:16px">
+          <button class="btn btn-primary" onclick="submitQuiz()" id="quiz-submit-btn">Submit Answers</button>
+        </div>
+      </div>
+      <div id="quiz-results" style="display:none">
+        <div id="quiz-score-banner"></div>
+        <div id="quiz-results-list"></div>
+        <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="retryWeak()">Retry Wrong Questions</button>
+          <button class="btn btn-secondary" onclick="newQuiz()">New Quiz</button>
+        </div>
+      </div>
+      <div style="margin-top:28px" id="quiz-history-section">
+        <div class="section-header">
+          <h2>Quiz History</h2>
+          <select id="quiz-hist-subject" onchange="loadQuizHistory()" style="padding:5px 10px;border:1px solid var(--border);border-radius:7px;font-size:.82rem;font-family:inherit">
+            <option value="">All subjects</option>
+          </select>
+        </div>
+        <div id="quiz-history"></div>
+      </div>
+    </section>
+
+    <!-- ── PLANNER ────────────────────────────────────────────── -->
+    <section id="page-planner" class="page-section">
+      <div class="section-header">
+        <h2>Adaptive Study Planner</h2>
+        <div style="display:flex;gap:8px">
+          <select id="planner-subject" onchange="loadPlan()" style="padding:5px 10px;border:1px solid var(--border);border-radius:7px;font-size:.84rem;font-family:inherit">
+            <option value="">Select subject…</option>
+          </select>
+          <button class="btn btn-secondary btn-sm" onclick="loadPlan()">↻ Refresh</button>
+        </div>
+      </div>
+      <div id="planner-summary-bar" class="card" style="margin-bottom:18px;display:none"></div>
+      <div id="planner-shortfall" style="display:none;margin-bottom:14px"></div>
+      <div id="planner-schedule"></div>
+    </section>
+
+    <!-- ── ANALYTICS ─────────────────────────────────────────── -->
+    <section id="page-analytics" class="page-section">
+      <div class="section-header">
+        <h2>Progress Analytics</h2>
+        <select id="analytics-subject" onchange="loadAnalytics()" style="padding:5px 10px;border:1px solid var(--border);border-radius:7px;font-size:.84rem;font-family:inherit">
+          <option value="">Select subject…</option>
+        </select>
+      </div>
+      <div id="analytics-content"></div>
+    </section>
+
+  </div><!-- end main-content -->
+</div><!-- end app-shell -->
+
+<!-- ── MODALS ──────────────────────────────────────────────────── -->
+<div class="modal-backdrop" id="modal-subject" role="dialog" aria-modal="true" aria-labelledby="msub-title">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="msub-title">Create Subject</h3>
+      <button class="btn-icon" onclick="closeModal('modal-subject')" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="msub-id">
+      <div class="form-group">
+        <label>Subject name *</label>
+        <input id="msub-name" type="text" placeholder="e.g. Data Structures, Organic Chemistry" maxlength="100">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Exam date</label>
+          <input id="msub-date" type="date">
+        </div>
+        <div class="form-group">
+          <label>Daily study time (minutes)</label>
+          <input id="msub-mins" type="number" min="15" max="480" value="60">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Syllabus topics (press Enter to add)</label>
+        <div class="tag-input-area" id="topic-tag-area" onclick="document.getElementById('topic-input').focus()">
+          <input id="topic-input" class="tag-chip-input" placeholder="Add topic…" onkeydown="topicKeydown(event)">
+        </div>
+        <div id="topic-tags-hidden" style="display:none"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-subject')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSubject()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modal-upload" role="dialog" aria-modal="true" aria-labelledby="mup-title">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="mup-title">Upload Document</h3>
+      <button class="btn-icon" onclick="closeModal('modal-upload')" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Document type</label>
+        <select id="mup-type">
+          <option value="notes">Notes</option>
+          <option value="syllabus">Syllabus</option>
+          <option value="previous_papers">Previous Question Papers</option>
+        </select>
+      </div>
+      <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()"
+           ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropFile(event)">
+        <div style="font-size:2rem">📄</div>
+        <p>Click to browse or drag &amp; drop</p>
+        <p style="font-size:.75rem;margin-top:2px">PDF or TXT &mdash; max 20 MB</p>
+        <input type="file" id="file-input" accept=".pdf,.txt" style="display:none" onchange="fileSelected(event)">
+      </div>
+      <div id="file-preview-name" style="display:none;margin-top:10px;font-size:.84rem;padding:8px 12px;background:var(--bg);border-radius:7px;border:1px solid var(--border)"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-upload')">Cancel</button>
+      <button class="btn btn-primary" onclick="uploadDocument()" id="upload-btn">Upload &amp; Index</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modal-preview" role="dialog" aria-modal="true" aria-labelledby="mprev-title">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-header">
+      <h3 id="mprev-title">Document Preview</h3>
+      <button class="btn-icon" onclick="closeModal('modal-preview')" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="preview-content"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-preview')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TOAST ────────────────────────────────────────────────────── -->
+<div id="toast-container" aria-live="polite"></div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     JAVASCRIPT
+     ═══════════════════════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+// ── State ────────────────────────────────────────────────────────
+let allSubjects     = [];
+let currentDocSubject = null;
+let currentPage     = 'dashboard';
+let currentTopicTags = [];
+let currentQuizId   = null;
+let currentQuizQs   = [];
+let lastQuizResult  = null;
+let currentFlashcards = [];
+let currentSummary  = null;
+let aiConfigured    = false;
+
+// ── Helpers ──────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso + (iso.length === 10 ? 'T00:00:00' : ''));
+  return d.toLocaleDateString(undefined, {month:'short',day:'numeric',year:'numeric'});
+}
+
+function daysLeft(iso) {
+  if (!iso) return null;
+  const d = new Date(iso + 'T00:00:00');
+  const n = new Date(); n.setHours(0,0,0,0);
+  return Math.ceil((d - n) / 86400000);
+}
+
+function relTime(iso) {
+  const diff = Date.now() - new Date(iso);
+  const m = Math.floor(diff / 60000);
+  if (m < 1)  return 'just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m/60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h/24)}d ago`;
+}
+
+// Simple markdown → HTML (safe subset)
+function mdToHtml(text) {
+  if (!text) return '';
+  let h = escHtml(text);
+  h = h.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  h = h.replace(/\*(.+?)\*/g,     '<em>$1</em>');
+  h = h.replace(/`([^`]+)`/g,     '<code>$1</code>');
+  h = h.replace(/^#{1,3}\s+(.+)$/gm, '<strong>$1</strong>');
+  h = h.replace(/^\-\s+(.+)$/gm,  '• $1');
+  h = h.replace(/\n{2,}/g, '<br><br>');
+  h = h.replace(/\n/g, '<br>');
+  return h;
+}
+
+// ── Toast ─────────────────────────────────────────────────────────
+function toast(msg, type='info', dur=3200) {
+  const c = $('toast-container');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  c.appendChild(t);
+  requestAnimationFrame(() => t.classList.add('show'));
+  setTimeout(() => {
+    t.classList.remove('show');
+    setTimeout(() => t.remove(), 400);
+  }, dur);
+}
+
+// ── API fetch ─────────────────────────────────────────────────────
+async function api(method, path, body, isForm) {
+  const opts = {method, headers: {}};
+  if (body && !isForm) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+  if (isForm)          { opts.body = body; }
+  const r = await fetch(path, opts);
+  let data;
+  try { data = await r.json(); } catch(e) { data = {}; }
+  if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+  return data;
+}
+
+async function apiBlob(method, path, body) {
+  const r = await fetch(path, {method, headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  if (!r.ok) { toast('Export failed', 'error'); return; }
+  const blob = await r.blob();
+  const cd = r.headers.get('Content-Disposition') || '';
+  const fnMatch = cd.match(/filename="?([^"]+)"?/);
+  const fn = fnMatch ? fnMatch[1] : 'export.md';
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fn; a.click();
+}
+
+// ── Navigation ────────────────────────────────────────────────────
+function navigate(page) {
+  document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('#nav-links a').forEach(a => a.classList.remove('active'));
+  $(`page-${page}`).classList.add('active');
+  $(`nav-${page}`).classList.add('active');
+  currentPage = page;
+  const titles = {dashboard:'Dashboard',subjects:'Subjects & Materials',chat:'Study Assistant',
+    summaries:'Summaries',flashcards:'Flashcards',quizzes:'Practice Quizzes',
+    planner:'Study Planner',analytics:'Analytics'};
+  $('page-title').textContent = titles[page] || page;
+  // close sidebar on mobile
+  $('sidebar').classList.remove('open');
+  if (page === 'dashboard')   loadDashboard();
+  if (page === 'subjects')    loadSubjects();
+  if (page === 'chat')        populateChatSubjects();
+  if (page === 'summaries')   populateSubjectSelects();
+  if (page === 'flashcards')  populateSubjectSelects();
+  if (page === 'quizzes')     populateSubjectSelects();
+  if (page === 'planner')     populatePlannerSubjects();
+  if (page === 'analytics')   populateAnalyticsSubjects();
+  return false;
+}
+
+function toggleSidebar() { $('sidebar').classList.toggle('open'); }
+
+// ── Health check ──────────────────────────────────────────────────
+async function checkHealth() {
+  try {
+    const d = await api('GET', '/api/health');
+    aiConfigured = d.ai_configured;
+    const el = $('ai-status');
+    if (d.ai_configured) {
+      el.textContent = `AI: ${d.model}`;
+      el.className = 'ok';
+    } else {
+      el.textContent = 'AI: not configured';
+      el.className = 'err';
+    }
+  } catch(e) {
+    $('ai-status').textContent = 'Server error'; $('ai-status').className = 'err';
+  }
+}
+
+// ── Subjects ──────────────────────────────────────────────────────
+async function loadSubjects() {
+  try {
+    allSubjects = await api('GET', '/api/subjects');
+    renderSubjectList();
+  } catch(e) { toast('Could not load subjects: ' + e.message, 'error'); }
+}
+
+function renderSubjectList() {
+  const el = $('subject-list');
+  if (!allSubjects.length) {
+    el.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+      <div class="empty-icon">📚</div>
+      <p>No subjects yet.<br>Click <strong>New Subject</strong> to get started.</p>
+    </div>`;
+    return;
+  }
+  el.innerHTML = allSubjects.map(s => {
+    const dl = daysLeft(s.exam_date);
+    const dlStr = dl !== null ? `<span class="badge ${dl < 7 ? 'badge-red' : dl < 14 ? 'badge-amber' : 'badge-green'}">${dl} days</span>` : '';
+    return `<div class="subject-card">
+      <div class="subject-name">${escHtml(s.name)} ${dlStr}</div>
+      <div class="subject-meta">
+        ${s.exam_date ? '📅 Exam: ' + fmtDate(s.exam_date) : '<em>No exam date set</em>'}
+        &nbsp;&bull;&nbsp; ⏱ ${s.daily_minutes} min/day
+      </div>
+      ${s.topics && s.topics.length ? `<div style="margin-top:4px">${s.topics.slice(0,4).map(t=>`<span class="badge badge-blue" style="margin:2px">${escHtml(t)}</span>`).join('')}${s.topics.length>4?`<span class="badge badge-blue">+${s.topics.length-4}</span>`:''}</div>` : ''}
+      <div class="subject-actions">
+        <button class="btn btn-secondary btn-sm" onclick="openDocs('${s.id}','${escHtml(s.name)}')">📄 Documents</button>
+        <button class="btn btn-secondary btn-sm" onclick="openSubjectModal('${s.id}')">✏ Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteSubject('${s.id}','${escHtml(s.name)}')">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openSubjectModal(id) {
+  currentTopicTags = [];
+  $('topic-tag-area').querySelectorAll('.tag-chip').forEach(c => c.remove());
+  $('topic-input').value = '';
+
+  if (id) {
+    const s = allSubjects.find(x => x.id === id);
+    if (!s) return;
+    $('msub-id').value  = s.id;
+    $('msub-name').value = s.name;
+    $('msub-date').value = s.exam_date || '';
+    $('msub-mins').value = s.daily_minutes;
+    $('msub-title').textContent = 'Edit Subject';
+    currentTopicTags = [...(s.topics || [])];
+    currentTopicTags.forEach(addTopicChip);
+  } else {
+    $('msub-id').value  = '';
+    $('msub-name').value = '';
+    $('msub-date').value = '';
+    $('msub-mins').value = 60;
+    $('msub-title').textContent = 'Create Subject';
+  }
+  openModal('modal-subject');
+}
+
+function topicKeydown(e) {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const val = e.target.value.trim();
+  if (val && !currentTopicTags.includes(val)) {
+    currentTopicTags.push(val);
+    addTopicChip(val);
+  }
+  e.target.value = '';
+}
+
+function addTopicChip(text) {
+  const chip = document.createElement('span');
+  chip.className = 'tag-chip';
+  chip.innerHTML = escHtml(text) + `<button type="button" aria-label="Remove" onclick="removeTopicChip(this,'${escHtml(text)}')">×</button>`;
+  $('topic-tag-area').insertBefore(chip, $('topic-input'));
+}
+
+function removeTopicChip(btn, text) {
+  currentTopicTags = currentTopicTags.filter(t => t !== text);
+  btn.parentElement.remove();
+}
+
+async function saveSubject() {
+  const id   = $('msub-id').value.trim();
+  const name = $('msub-name').value.trim();
+  if (!name) { toast('Subject name is required', 'error'); return; }
+  const body = {name, exam_date: $('msub-date').value, daily_minutes: parseInt($('msub-mins').value)||60, topics: currentTopicTags};
+  try {
+    if (id) { await api('PUT', `/api/subjects/${id}`, body); toast('Subject updated', 'success'); }
+    else    { await api('POST', '/api/subjects', body);     toast('Subject created', 'success'); }
+    closeModal('modal-subject');
+    await loadSubjects();
+    populateSubjectSelects();
+  } catch(e) { toast('Error: ' + e.message, 'error'); }
+}
+
+async function deleteSubject(id, name) {
+  if (!confirm(`Delete subject "${name}" and all its documents?`)) return;
+  try {
+    await api('DELETE', `/api/subjects/${id}`);
+    toast('Subject deleted', 'success');
+    await loadSubjects();
+    if (currentDocSubject === id) { $('doc-panel').style.display='none'; currentDocSubject=null; }
+    populateSubjectSelects();
+  } catch(e) { toast('Error: ' + e.message, 'error'); }
+}
+
+// ── Documents ─────────────────────────────────────────────────────
+async function openDocs(sid, name) {
+  currentDocSubject = sid;
+  $('doc-panel-title').textContent = `Documents — ${name}`;
+  $('doc-panel').style.display = 'block';
+  await loadDocs(sid);
+  $('doc-panel').scrollIntoView({behavior:'smooth'});
+}
+
+async function loadDocs(sid) {
+  try {
+    const docs = await api('GET', `/api/subjects/${sid}/documents`);
+    renderDocList(docs);
+  } catch(e) { toast('Could not load documents', 'error'); }
+}
+
+function renderDocList(docs) {
+  const el = $('doc-list');
+  if (!docs.length) {
+    el.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">📄</div>
+      <p>No documents yet. Upload a PDF or TXT file to start.</p>
+    </div>`;
+    return;
+  }
+  const icons = {pdf:'📕', txt:'📄'};
+  el.innerHTML = docs.map(d => `<div class="doc-card">
+    <div class="doc-icon">${icons[d.ext] || '📄'}</div>
+    <div class="doc-info">
+      <div class="doc-name" title="${escHtml(d.name)}">${escHtml(d.name)}</div>
+      <div class="doc-meta">${d.doc_type} &bull; ${d.page_count} page(s) &bull; ${d.word_count.toLocaleString()} words &bull; ${d.chunk_count} chunks &bull; uploaded ${relTime(d.uploaded_at)}</div>
+    </div>
+    <span class="doc-status ${d.status}">${d.status}</span>
+    <button class="btn-icon" title="Preview" onclick="previewDoc('${d.id}','${escHtml(d.name)}')">👁</button>
+    <button class="btn-icon btn-danger" title="Delete" onclick="deleteDoc('${d.id}','${escHtml(d.name)}')">🗑</button>
+  </div>`).join('');
+}
+
+function openUploadModal() {
+  if (!currentDocSubject) { toast('Select a subject first', 'error'); return; }
+  $('file-input').value = '';
+  $('file-preview-name').style.display='none';
+  openModal('modal-upload');
+}
+
+function dragOver(e)  { e.preventDefault(); $('drop-zone').classList.add('drag-over'); }
+function dragLeave(e) { $('drop-zone').classList.remove('drag-over'); }
+function dropFile(e)  {
+  e.preventDefault(); $('drop-zone').classList.remove('drag-over');
+  const dt = e.dataTransfer; if (!dt || !dt.files.length) return;
+  const inp = $('file-input');
+  // assign file via DataTransfer
+  try {
+    const transfer = new DataTransfer();
+    transfer.items.add(dt.files[0]);
+    inp.files = transfer.files;
+    showFilePicked(dt.files[0].name);
+  } catch(err) { toast('Could not set file. Please use the browse button.', 'info'); }
+}
+function fileSelected(e) { if (e.target.files.length) showFilePicked(e.target.files[0].name); }
+function showFilePicked(name) {
+  const el = $('file-preview-name');
+  el.textContent = '📎 ' + name;
+  el.style.display = 'block';
+}
+
+async function uploadDocument() {
+  const file = $('file-input').files[0];
+  if (!file) { toast('Please select a file', 'error'); return; }
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (!['pdf','txt'].includes(ext)) { toast('Only PDF and TXT files are accepted', 'error'); return; }
+  if (file.size > 20*1024*1024) { toast('File must be under 20 MB', 'error'); return; }
+
+  const btn = $('upload-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Indexing…';
+
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('doc_type', $('mup-type').value);
+
+  try {
+    const doc = await api('POST', `/api/subjects/${currentDocSubject}/documents`, fd, true);
+    toast(`"${doc.name}" indexed — ${doc.chunk_count} chunks`, 'success');
+    closeModal('modal-upload');
+    loadDocs(currentDocSubject);
+  } catch(e) {
+    if (e.message && e.message.includes('scanned')) {
+      toast('Scanned PDF detected — no text extracted. Please use a text-based PDF or TXT.', 'error', 6000);
+    } else {
+      toast('Upload failed: ' + e.message, 'error', 5000);
+    }
+  } finally { btn.disabled=false; btn.innerHTML='Upload &amp; Index'; }
+}
+
+async function previewDoc(did, name) {
+  $('mprev-title').textContent = 'Preview: ' + name;
+  $('preview-content').innerHTML = '<div style="text-align:center;padding:20px"><span class="spinner dark"></span></div>';
+  openModal('modal-preview');
+  try {
+    const data = await api('GET', `/api/documents/${did}/preview`);
+    $('preview-content').innerHTML = data.pages.map(p =>
+      `<div style="margin-bottom:14px"><strong style="font-size:.78rem;color:var(--muted)">Page ${p.page}</strong><div class="preview-box" style="margin-top:4px">${escHtml(p.text || '(No text on this page)')}</div></div>`
+    ).join('');
+  } catch(e) { $('preview-content').innerHTML = `<p style="color:var(--red)">${escHtml(e.message)}</p>`; }
+}
+
+async function deleteDoc(did, name) {
+  if (!confirm(`Delete "${name}"? This will also remove its indexed content.`)) return;
+  try {
+    await api('DELETE', `/api/documents/${did}`);
+    toast('Document deleted', 'success');
+    loadDocs(currentDocSubject);
+  } catch(e) { toast('Error: ' + e.message, 'error'); }
+}
+
+// ── Chat ──────────────────────────────────────────────────────────
+function populateChatSubjects() {
+  const sel = $('chat-subject-sel');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Select a subject —</option>';
+  allSubjects.forEach(s => {
+    const o = document.createElement('option');
+    o.value = s.id; o.textContent = s.name;
+    if (s.id === cur) o.selected = true;
+    sel.appendChild(o);
+  });
+}
+
+function chatSubjectChanged() { /* subject selected */ }
+
+function clearChat() {
+  $('chat-messages').innerHTML = `<div class="msg assistant">
+    <div class="msg-bubble"><strong>Chat cleared.</strong> Ask any question about your materials.</div>
+  </div>`;
+}
+
+function chatKeydown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
+}
+
+async function sendChat() {
+  const sid = $('chat-subject-sel').value;
+  const q   = $('chat-input').value.trim();
+  if (!sid)  { toast('Select a subject first', 'error'); return; }
+  if (!q)    return;
+
+  appendMsg('user', q);
+  $('chat-input').value = '';
+  $('chat-send-btn').disabled = true;
+
+  const loadMsg = appendMsg('assistant', '<span class="spinner dark"></span> Thinking…', true);
+  try {
+    const data = await api('POST', `/api/subjects/${sid}/chat`, {question: q});
+    loadMsg.remove();
+    const html = mdToHtml(data.answer);
+    const cites = (data.citations || []).map(c =>
+      `<span class="citation-tag">📄 ${escHtml(c.doc)} p.${c.pages.join(',')}</span>`
+    ).join('');
+    const div = document.createElement('div');
+    div.className = 'msg assistant';
+    div.innerHTML = `<div class="msg-bubble">${html}</div>${cites ? `<div class="msg-citations">${cites}</div>` : ''}`;
+    $('chat-messages').appendChild(div);
+  } catch(e) {
+    loadMsg.remove();
+    appendMsg('assistant', '⚠ ' + e.message);
+  }
+  $('chat-send-btn').disabled = false;
+  $('chat-messages').scrollTop = 9e9;
+}
+
+function appendMsg(role, html, raw) {
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  const bub = document.createElement('div');
+  bub.className = 'msg-bubble';
+  if (raw) bub.innerHTML = html; else bub.innerHTML = mdToHtml(html);
+  div.appendChild(bub);
+  $('chat-messages').appendChild(div);
+  $('chat-messages').scrollTop = 9e9;
+  return div;
+}
+
+// ── Subject selects ───────────────────────────────────────────────
+function populateSubjectSelects() {
+  ['sum-subject','fc-subject','quiz-subject','quiz-hist-subject'].forEach(id => {
+    const el = $(id);
+    if (!el) return;
+    const cur = el.value;
+    el.innerHTML = allSubjects.length
+      ? allSubjects.map(s => `<option value="${s.id}">${escHtml(s.name)}</option>`).join('')
+      : '<option value="">No subjects — create one first</option>';
+    if (cur) el.value = cur;
+  });
+}
+
+// ── Summaries ─────────────────────────────────────────────────────
+async function generateSummary() {
+  const sid   = $('sum-subject').value;
+  const style = $('sum-style').value;
+  const topic = $('sum-topic').value.trim() || 'all content';
+  if (!sid) { toast('Select a subject', 'error'); return; }
+
+  const btn = $('sum-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Generating…';
+  $('sum-result').style.display = 'none';
+
+  try {
+    const data = await api('POST', `/api/subjects/${sid}/summary`, {topic, style});
+    currentSummary = data;
+    $('sum-result-title').textContent = `${style === 'short' ? 'Short Summary' : style === 'detailed' ? 'Revision Notes' : 'Key Terms'}: ${topic}`;
+    $('sum-content').textContent = data.content;
+    $('sum-sources').innerHTML = data.sources.map(s =>
+      `<span class="citation-tag">📄 ${escHtml(s.doc)} p.${s.pages.join(',')}</span>`).join('');
+    $('sum-result').style.display = 'block';
+    toast('Summary generated', 'success');
+  } catch(e) { toast('Error: ' + e.message, 'error', 5000); }
+  finally { btn.disabled=false; btn.innerHTML='Generate'; }
+}
+
+function exportSummary() {
+  if (!currentSummary) return;
+  const filename = `summary_${currentSummary.style}_${Date.now()}.md`;
+  apiBlob('POST', '/api/export/summary', {content: currentSummary.content, filename});
+}
+
+// ── Flashcards ────────────────────────────────────────────────────
+async function generateFlashcards() {
+  const sid   = $('fc-subject').value;
+  const count = parseInt($('fc-count').value);
+  const topic = $('fc-topic').value.trim() || 'key concepts';
+  if (!sid) { toast('Select a subject', 'error'); return; }
+
+  const btn = $('fc-gen-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Generating…';
+
+  try {
+    const data = await api('POST', `/api/subjects/${sid}/flashcards`, {topic, count});
+    currentFlashcards = data.cards;
+    renderFlashcardDeck(data.cards, `${topic} (${data.cards.length} cards)`);
+    toast(`${data.cards.length} flashcards ready — click a card to flip`, 'success');
+  } catch(e) { toast('Error: ' + e.message, 'error', 5000); }
+  finally { btn.disabled=false; btn.innerHTML='Generate Flashcards'; }
+}
+
+async function loadSavedSets() {
+  const sid = $('fc-subject').value;
+  if (!sid) { toast('Select a subject', 'error'); return; }
+  try {
+    const sets = await api('GET', `/api/subjects/${sid}/flashcards`);
+    if (!sets.length) { toast('No saved sets for this subject yet', 'info'); return; }
+    const sel = $('fc-set-sel');
+    sel.innerHTML = sets.map(s => `<option value="${s.id}">${escHtml(s.topic)} (${s.cards.length} cards, ${fmtDate(s.created_at)})</option>`).join('');
+    $('fc-set-selector').style.display = 'block';
+    loadFlashcardSet(sel.value);
+  } catch(e) { toast('Error: ' + e.message, 'error'); }
+}
+
+function loadFlashcardSet(fid) {
+  if (!fid) return;
+  // find set from previously fetched data via option text — re-fetch inline
+  const sel = $('fc-set-sel');
+  const opt = sel.querySelector(`option[value="${fid}"]`);
+  const sid = $('fc-subject').value;
+  api('GET', `/api/subjects/${sid}/flashcards`).then(sets => {
+    const set = sets.find(s => s.id === fid);
+    if (set) { currentFlashcards = set.cards; renderFlashcardDeck(set.cards, set.topic); }
+  });
+}
+
+function renderFlashcardDeck(cards, title) {
+  $('fc-deck-header').style.display = 'flex';
+  $('fc-deck-title').textContent = title;
+  $('fc-instructions').style.display = 'block';
+  $('fc-deck').innerHTML = cards.map((c, i) => `
+    <div class="flashcard" id="fc-${i}" onclick="flipCard(${i})" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ') flipCard(${i})" role="button" aria-label="Flashcard ${i+1}: ${escHtml(c.q)}">
+      <div class="flashcard-inner">
+        <div class="flashcard-front">
+          <div><div class="flashcard-label">Question</div><div class="flashcard-text">${escHtml(c.q)}</div></div>
+        </div>
+        <div class="flashcard-back">
+          <div><div class="flashcard-label">Answer</div><div class="flashcard-text">${escHtml(c.a)}</div></div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function flipCard(i) { $(`fc-${i}`).classList.toggle('flipped'); }
+
+function exportFlashcards() {
+  if (!currentFlashcards.length) return;
+  apiBlob('POST', '/api/export/flashcards', {cards: currentFlashcards});
+}
+
+// ── Quizzes ───────────────────────────────────────────────────────
+async function generateQuiz() {
+  const sid    = $('quiz-subject').value;
+  const num    = parseInt($('quiz-num').value);
+  const topic  = $('quiz-topic').value.trim() || 'general';
+  const diff   = $('quiz-diff').value;
+  if (!sid) { toast('Select a subject', 'error'); return; }
+
+  const btn = $('quiz-gen-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Generating…';
+  $('quiz-area').style.display = 'none';
+  $('quiz-results').style.display = 'none';
+
+  try {
+    const data = await api('POST', `/api/subjects/${sid}/quiz/generate`, {topic, difficulty:diff, num_questions:num});
+    currentQuizId = data.quiz_id;
+    currentQuizQs = data.questions;
+    lastQuizResult = null;
+    renderQuizQuestions(data.questions);
+    $('quiz-area').style.display = 'block';
+    $('quiz-setup').scrollIntoView({behavior:'smooth'});
+    toast(`${data.questions.length} questions ready`, 'success');
+  } catch(e) { toast('Error: ' + e.message, 'error', 5000); }
+  finally { btn.disabled=false; btn.innerHTML='Generate Quiz'; }
+}
+
+function renderQuizQuestions(questions) {
+  $('quiz-submit-row').style.display = 'block';
+  $('quiz-questions').innerHTML = questions.map((q, i) => `
+    <div class="quiz-question" id="qq-${i}">
+      <div class="q-text">${i+1}. ${escHtml(q.q)}</div>
+      <div class="quiz-options" id="qo-${i}">
+        ${q.options.map((opt, oi) => {
+          const letter = 'ABCD'[oi];
+          return `<label class="quiz-option" id="qopt-${i}-${letter}">
+            <input type="radio" name="quiz-q-${i}" value="${letter}">
+            ${escHtml(opt)}
+          </label>`;
+        }).join('')}
+      </div>
+    </div>`).join('');
+}
+
+async function submitQuiz() {
+  if (!currentQuizId) return;
+  const answers = {};
+  currentQuizQs.forEach((q, i) => {
+    const sel = document.querySelector(`input[name="quiz-q-${i}"]:checked`);
+    if (sel) answers[String(i)] = sel.value;
+  });
+  const unanswered = currentQuizQs.filter((_, i) => !answers[String(i)]).length;
+  if (unanswered && !confirm(`${unanswered} question(s) unanswered. Submit anyway?`)) return;
+
+  const btn = $('quiz-submit-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Scoring…';
+  try {
+    const result = await api('POST', `/api/quiz/${currentQuizId}/submit`, {answers});
+    lastQuizResult = result;
+    renderQuizResults(result);
+    $('quiz-area').style.display = 'none';
+    $('quiz-results').style.display = 'block';
+    loadQuizHistory();
+    toast(`Quiz scored: ${result.score}%`, result.score >= 60 ? 'success' : 'info');
+  } catch(e) { toast('Error: ' + e.message, 'error'); }
+  finally { btn.disabled=false; btn.innerHTML='Submit Answers'; }
+}
+
+function renderQuizResults(result) {
+  $('quiz-score-banner').innerHTML = `
+    <div class="score-banner">
+      <div class="score-pct">${result.score}%</div>
+      <div class="score-label">${result.correct} / ${result.total} correct &bull; ${result.topic} &bull; ${result.difficulty}</div>
+    </div>`;
+
+  $('quiz-results-list').innerHTML = result.results.map((r, i) => `
+    <div class="quiz-question">
+      <div class="q-text">${i+1}. ${escHtml(r.q)}</div>
+      <div class="quiz-options">
+        ${r.options.map((opt, oi) => {
+          const letter = 'ABCD'[oi];
+          let cls = '';
+          if (letter === r.correct_answer) cls = 'correct';
+          else if (letter === r.user_answer && !r.is_correct) cls = 'wrong';
+          return `<div class="quiz-option ${cls}">${escHtml(opt)}${letter===r.correct_answer?' ✓':letter===r.user_answer&&!r.is_correct?' ✗':''}</div>`;
+        }).join('')}
+      </div>
+      ${r.explanation ? `<div class="result-explanation">${escHtml(r.explanation)}</div>` : ''}
+    </div>`).join('');
+}
+
+function retryWeak() {
+  if (!lastQuizResult) return;
+  const wrong = lastQuizResult.results.filter(r => !r.is_correct);
+  if (!wrong.length) { toast('All answers were correct!', 'success'); return; }
+  currentQuizQs = wrong.map((r, i) => ({idx: i, q: r.q, options: r.options}));
+  // can't re-score from server (quiz consumed), show review mode
+  $('quiz-results').style.display = 'none';
+  renderQuizQuestions(currentQuizQs);
+  $('quiz-submit-row').style.display = 'none';   // no submit for retry review
+  $('quiz-area').style.display = 'block';
+  toast('Review the ' + wrong.length + ' wrong question(s) — generate a new quiz to score again', 'info', 5000);
+}
+
+function newQuiz() {
+  $('quiz-results').style.display = 'none';
+  $('quiz-area').style.display = 'none';
+  currentQuizId = null; currentQuizQs = []; lastQuizResult = null;
+}
+
+async function loadQuizHistory() {
+  const sid = $('quiz-hist-subject').value;
+  const url = sid ? `/api/subjects/${sid}/quiz/history` : null;
+  // without a subject, show all using dashboard data
+  if (!url) { $('quiz-history').innerHTML = '<p style="font-size:.82rem;color:var(--muted)">Select a subject to see history.</p>'; return; }
+  try {
+    const hist = await api('GET', url);
+    if (!hist.length) { $('quiz-history').innerHTML = `<div class="empty-state"><p>No quiz attempts yet for this subject.</p></div>`; return; }
+    $('quiz-history').innerHTML = hist.slice().reverse().map(a =>
+      `<div class="card card-sm" style="margin-bottom:8px;display:flex;align-items:center;gap:12px">
+        <span class="badge ${a.score>=80?'badge-green':a.score>=60?'badge-blue':'badge-red'}">${a.score}%</span>
+        <div style="flex:1;font-size:.84rem"><strong>${escHtml(a.topic)}</strong> &bull; ${a.difficulty} &bull; ${a.correct}/${a.total} correct</div>
+        <div style="font-size:.73rem;color:var(--muted)">${fmtDate(a.submitted_at)}</div>
+      </div>`
+    ).join('');
+  } catch(e) { toast('Error: ' + e.message, 'error'); }
+}
+
+// ── Planner ───────────────────────────────────────────────────────
+function populatePlannerSubjects() {
+  const sel = $('planner-subject');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">Select subject…</option>' +
+    allSubjects.map(s => `<option value="${s.id}">${escHtml(s.name)}</option>`).join('');
+  if (cur) sel.value = cur;
+  if (allSubjects.length === 1) { sel.value = allSubjects[0].id; loadPlan(); }
+}
+
+async function loadPlan() {
+  const sid = $('planner-subject').value;
+  if (!sid) { $('planner-schedule').innerHTML = `<div class="empty-state"><div class="empty-icon">📅</div><p>Select a subject to view its study plan.</p></div>`; $('planner-summary-bar').style.display='none'; return; }
+  $('planner-schedule').innerHTML = '<div style="text-align:center;padding:30px"><span class="spinner dark"></span></div>';
+  try {
+    const plan = await api('GET', `/api/subjects/${sid}/plan`);
+    renderPlan(plan);
+  } catch(e) { toast('Error: ' + e.message, 'error'); }
+}
+
+function renderPlan(plan) {
+  const bar = $('planner-summary-bar');
+  const subj = allSubjects.find(s => s.id === plan.subject_id) || {};
+  bar.innerHTML = `
+    <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:center">
+      <div><strong>${escHtml(subj.name||'')}</strong><br><span style="font-size:.78rem;color:var(--muted)">Exam: ${fmtDate(plan.exam_date)} &bull; ${plan.days_left} day(s) left &bull; ${plan.daily_minutes} min/day</span></div>
+      ${Object.entries(plan.topic_scores||{}).length ? '<div style="font-size:.78rem;color:var(--muted)">Topic scores updated from quiz history</div>' : ''}
+    </div>`;
+  bar.style.display = 'block';
+
+  const sf = $('planner-shortfall');
+  if (plan.shortfall) {
+    sf.innerHTML = `<div class="card" style="border-left:4px solid var(--amber);padding:12px 16px"><strong>⚠ Workload warning:</strong> ${escHtml(plan.shortfall)}</div>`;
+    sf.style.display = 'block';
+  } else { sf.style.display = 'none'; }
+
+  const today = new Date().toISOString().slice(0,10);
+  $('planner-schedule').innerHTML = plan.schedule.slice(0, 14).map(day => {
+    const isToday = day.date === today;
+    return `<div class="planner-day" ${isToday ? 'style="border-left:4px solid var(--blue)"' : ''}>
+      <div class="day-header">
+        <div class="day-label">${isToday ? '📌 Today — ' : ''}${fmtDate(day.date)}</div>
+        <div class="day-mins">${day.total_minutes} min</div>
+      </div>
+      <div>${day.tasks.length ? day.tasks.map(t =>
+        `<span class="task-chip ${t.priority}">${escHtml(t.topic)} <span class="chip-min">${t.minutes}m</span></span>`
+      ).join('') : '<span style="font-size:.78rem;color:var(--muted)">No tasks scheduled</span>'}</div>
+    </div>`;
+  }).join('');
+  if (plan.schedule.length > 14) {
+    $('planner-schedule').innerHTML += `<div style="text-align:center;color:var(--muted);font-size:.8rem;padding:10px">Showing first 14 days of ${plan.schedule.length}-day plan</div>`;
+  }
+}
+
+// ── Analytics ─────────────────────────────────────────────────────
+function populateAnalyticsSubjects() {
+  const sel = $('analytics-subject');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">Select subject…</option>' +
+    allSubjects.map(s => `<option value="${s.id}">${escHtml(s.name)}</option>`).join('');
+  if (cur) sel.value = cur;
+  if (allSubjects.length === 1) { sel.value = allSubjects[0].id; loadAnalytics(); }
+}
+
+async function loadAnalytics() {
+  const sid = $('analytics-subject').value;
+  const el = $('analytics-content');
+  if (!sid) { el.innerHTML = `<div class="empty-state"><div class="empty-icon">📊</div><p>Select a subject to view analytics.</p></div>`; return; }
+  el.innerHTML = '<div style="text-align:center;padding:30px"><span class="spinner dark"></span></div>';
+  try {
+    const data = await api('GET', `/api/subjects/${sid}/analytics`);
+    renderAnalytics(data);
+  } catch(e) { toast('Error: ' + e.message, 'error'); }
+}
+
+function renderAnalytics(data) {
+  const el = $('analytics-content');
+  if (!data.total_attempts) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">📊</div><p>No quiz data yet. Complete a quiz to see analytics.</p></div>`;
+    return;
+  }
+
+  const topicHtml = Object.entries(data.topic_performance).map(([t, s]) => {
+    const cls = s >= 80 ? 'good' : s >= 60 ? 'ok' : s >= 40 ? 'weak' : 'poor';
+    return `<div class="topic-bar">
+      <div class="topic-label"><span>${escHtml(t)}</span><strong>${s}%</strong></div>
+      <div class="topic-bar-track"><div class="topic-bar-fill ${cls}" style="width:${s}%"></div></div>
+    </div>`;
+  }).join('');
+
+  const scoresHtml = data.attempts.slice(-10).map(a =>
+    `<div class="activity-item">
+      <div class="act-dot" style="background:${a.score>=60?'var(--green)':'var(--red)'}"></div>
+      <div class="act-text">${escHtml(a.topic)} — <strong>${a.score}%</strong></div>
+      <div class="act-time">${a.date}</div>
+    </div>`
+  ).join('');
+
+  el.innerHTML = `
+    <div class="stats-grid" style="margin-bottom:20px">
+      <div class="stat-card"><div class="stat-val">${data.total_attempts}</div><div class="stat-label">Total quiz attempts</div></div>
+      <div class="stat-card"><div class="stat-val">${data.average_score}%</div><div class="stat-label">Average score</div></div>
+      <div class="stat-card"><div class="stat-val">${data.weak_topics.length}</div><div class="stat-label">Weak topics (&lt;60%)</div></div>
+    </div>
+    <div class="analytics-grid">
+      <div class="card">
+        <div class="card-title">Topic Performance</div>
+        <div style="font-size:.72rem;color:var(--muted);margin-bottom:10px">Based on quiz results. Performance indicators reflect quiz scores only.</div>
+        ${topicHtml || '<p style="color:var(--muted);font-size:.84rem">No topic data yet.</p>'}
+      </div>
+      <div class="card">
+        <div class="card-title">Recent Quiz Scores</div>
+        <div class="activity-feed">${scoresHtml}</div>
+      </div>
+    </div>
+    ${data.weak_topics.length ? `
+    <div class="card" style="margin-top:16px;border-left:4px solid var(--amber)">
+      <div class="card-title">⚠ Topics Needing Revision</div>
+      <div>${data.weak_topics.map(t=>`<span class="badge badge-amber" style="margin:3px">${escHtml(t)}</span>`).join('')}</div>
+    </div>` : ''}`;
+}
+
+// ── Dashboard ─────────────────────────────────────────────────────
+async function loadDashboard() {
+  try {
+    const data = await api('GET', '/api/dashboard');
+
+    $('dash-stats').innerHTML = `
+      <div class="stat-card"><div class="stat-val">${data.subjects}</div><div class="stat-label">Subjects</div></div>
+      <div class="stat-card"><div class="stat-val">${data.documents}</div><div class="stat-label">Documents</div></div>
+      <div class="stat-card"><div class="stat-val">${data.upcoming_exams.length}</div><div class="stat-label">Upcoming Exams</div></div>
+      <div class="stat-card"><div class="stat-val">${data.recent_quizzes.length}</div><div class="stat-label">Recent Quizzes</div></div>
+    `;
+
+    $('dash-exams').innerHTML = data.upcoming_exams.length
+      ? data.upcoming_exams.map(e =>
+          `<div class="activity-item">
+            <div class="act-dot" style="background:${e.days_left<7?'var(--red)':e.days_left<14?'var(--amber)':'var(--green)'}"></div>
+            <div class="act-text"><strong>${escHtml(e.subject)}</strong></div>
+            <div class="act-time">${e.days_left}d left</div>
+          </div>`
+        ).join('')
+      : '<div class="empty-state" style="padding:16px"><p>No upcoming exams. Add an exam date to a subject.</p></div>';
+
+    $('dash-tasks').innerHTML = data.today_tasks.length
+      ? data.today_tasks.map(t =>
+          `<div class="activity-item">
+            <div class="act-dot" style="background:${t.priority==='high'?'var(--red)':'var(--blue)'}"></div>
+            <div class="act-text"><strong>${escHtml(t.subject)}</strong>: ${escHtml(t.topic)}</div>
+            <div class="act-time">${t.minutes}m</div>
+          </div>`
+        ).join('')
+      : '<div class="empty-state" style="padding:16px"><p>No tasks today. Set up a subject with an exam date and daily study time.</p></div>';
+
+    $('dash-quizzes').innerHTML = data.recent_quizzes.length
+      ? data.recent_quizzes.map(q =>
+          `<div class="activity-item">
+            <span class="badge ${q.score>=80?'badge-green':q.score>=60?'badge-blue':'badge-red'}">${q.score}%</span>
+            <div class="act-text">${escHtml(q.topic)}</div>
+            <div class="act-time">${relTime(q.submitted_at)}</div>
+          </div>`
+        ).join('')
+      : '<div class="empty-state" style="padding:16px"><p>No quizzes yet. Try the Practice Quizzes section.</p></div>';
+
+    $('dash-activity').innerHTML = data.recent_activity.length
+      ? data.recent_activity.map(a =>
+          `<div class="activity-item">
+            <div class="act-dot"></div>
+            <div class="act-text"><strong>${escHtml(a.action)}</strong>${a.detail ? ': ' + escHtml(a.detail) : ''}</div>
+            <div class="act-time">${relTime(a.ts)}</div>
+          </div>`
+        ).join('')
+      : '<div class="empty-state" style="padding:16px"><p>No activity yet.</p></div>';
+
+  } catch(e) { console.error('Dashboard error:', e); }
+}
+
+// ── Modals ────────────────────────────────────────────────────────
+function openModal(id)  { $(id).classList.add('open'); document.body.style.overflow='hidden'; }
+function closeModal(id) { $(id).classList.remove('open'); document.body.style.overflow=''; }
+document.querySelectorAll('.modal-backdrop').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) closeModal(m.id); });
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.querySelectorAll('.modal-backdrop.open').forEach(m => closeModal(m.id));
+});
+
+// ── Init ──────────────────────────────────────────────────────────
+async function init() {
+  await checkHealth();
+  await loadSubjects();
+  loadDashboard();
+  // populate responsive dashboard grid
+  const dg = document.querySelector('#dash-grid-top');
+  if (window.innerWidth < 640 && dg) dg.style.gridTemplateColumns = '1fr';
+  const db = document.querySelector('#dash-grid-bot');
+  if (window.innerWidth < 640 && db) db.style.gridTemplateColumns = '1fr';
+}
+
+init();
+</script>
+</body>
+</html>
